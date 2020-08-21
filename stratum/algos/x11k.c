@@ -196,7 +196,7 @@ void x11k_hash(const char* input, char* output,  uint32_t len)
 
         for(int i = 1; i < HASHX11K_NUMBER_ITERATIONS; i++) {
                 uint64_t index = GetUint64(hashA, i % 8) % 11;
-                processHash(hashB, hashA, index, len);
+                processHash(hashB, hashA, index, 64);
                 memcpy(hashA, hashB, 64);
         }
 
