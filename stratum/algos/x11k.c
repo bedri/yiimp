@@ -16,20 +16,6 @@
 #include "../sha3/sph_simd.h"
 #include "../sha3/sph_echo.h"
 
-
-const uint64_t GetUint64(const void *data, int pos)
-{
-        const uint8_t *ptr = data + pos * 8;
-        return ((uint64_t)ptr[0]) | \
-                        ((uint64_t)ptr[1]) << 8 | \
-                        ((uint64_t)ptr[2]) << 16 | \
-                        ((uint64_t)ptr[3]) << 24 | \
-                        ((uint64_t)ptr[4]) << 32 | \
-                        ((uint64_t)ptr[5]) << 40 | \
-                        ((uint64_t)ptr[6]) << 48 | \
-                        ((uint64_t)ptr[7]) << 56;
-}
-
 void *Blake512(void *oHash, const void *iHash, uint32_t len)
 {
 	uint32_t pHash[16];
@@ -187,16 +173,16 @@ void processHash(void *oHash, const void *iHash, int index, uint32_t len)
 void x11k_hash(const char* input, char* output,  uint32_t len)
 {
         const int HASHX11K_NUMBER_ITERATIONS = 64;
+	const int HASHX11K_NUMBER_ALGOS = 11;
 
-        //uint32_t hashA[16], hashB[16];
 	uint32_t hashA[16], hashB[16];
 
         // Iteration 0
         processHash(hashA, input, 0, len);
 
         for(int i = 1; i < HASHX11K_NUMBER_ITERATIONS; i++) {
-                uint64_t index = GetUint64(hashA, i % 8) % 11;
-                processHash(hashB, hashA, index, 64);
+                unsigned char * p = hashA;
+                processHash(hashB, hashA, p[i] % HASHX11K_NUMBER_ALGOS, 64);
                 memcpy(hashA, hashB, 64);
         }
 
