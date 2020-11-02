@@ -16,219 +16,134 @@
 #include "../sha3/sph_simd.h"
 #include "../sha3/sph_echo.h"
 
-void *Blake512(void *oHash, const void *iHash, uint32_t len)
-{
-        sph_blake512_context ctx_blake;
+// Use functions defined in x11k.c
+extern void *Blake512(void *oHash, const void *iHash, const size_t len);
+extern void *Bmw512(void *oHash, const void *iHash, const size_t len);
+extern void *Groestl512(void *oHash, const void *iHash, const size_t len);
+extern void *Skein512(void *oHash, const void *iHash, const size_t len);
+extern void *Jh512(void *oHash, const void *iHash, const size_t len);
+extern void *Keccak512(void *oHash, const void *iHash, const size_t len);
+extern void *Luffa512(void *oHash, const void *iHash, const size_t len);
+extern void *Cubehash512(void *oHash, const void *iHash, const size_t len);
+extern void *Shavite512(void *oHash, const void *iHash, const size_t len);
+extern void *Simd512(void *oHash, const void *iHash, const size_t len);
+extern void *Echo512(void *oHash, const void *iHash, const size_t len);
+extern void *fnHashX11K[];
+extern void processHash(void *oHash, const void *iHash, const int index, const size_t len);
 
-        sph_blake512_init(&ctx_blake);
-        sph_blake512 (&ctx_blake, iHash, len);
-        sph_blake512_close (&ctx_blake, oHash);
+
+/* ----------- Sapphire 2.0 Hash X11KVS ------------------------------------ */
+/* - X11, from the original 11 algos used on DASH -------------------------- */
+/* - K, from Kyanite ------------------------------------------------------- */
+/* - V, from Variable, variation of the number iterations on the X11K algo - */
+/* - S, from Sapphire ------------------------------------------------------ */
+
+#if !HAVE_DECL_LE32DEC
+static inline uint32_t le32dec(const void *pp)
+{
+	const uint8_t *p = (uint8_t const *)pp;
+	return ((uint32_t)(p[0]) + ((uint32_t)(p[1]) << 8) +
+	    ((uint32_t)(p[2]) << 16) + ((uint32_t)(p[3]) << 24));
 }
+#endif
 
-void *Bmw512(void *oHash, const void *iHash, uint32_t len)
+#if !HAVE_DECL_LE32ENC
+static inline void le32enc(void *pp, uint32_t x)
 {
-        sph_bmw512_context ctx_bmw;
-
-        sph_bmw512_init(&ctx_bmw);
-        sph_bmw512 (&ctx_bmw, iHash, len);
-        sph_bmw512_close(&ctx_bmw, oHash);
+	uint8_t *p = (uint8_t *)pp;
+	p[0] = x & 0xff;
+	p[1] = (x >> 8) & 0xff;
+	p[2] = (x >> 16) & 0xff;
+	p[3] = (x >> 24) & 0xff;
 }
+#endif
 
-void *Groestl512(void *oHash, const void *iHash, uint32_t len)
+
+const unsigned int HASHX11KV_MIN_NUMBER_ITERATIONS  = 2;
+const unsigned int HASHX11KV_MAX_NUMBER_ITERATIONS  = 6;
+const unsigned int HASHX11KV_NUMBER_ALGOS           = 11;
+
+void x11kv(void *output, const void *input)
 {
-        sph_groestl512_context ctx_groestl;
+	void *hashA = malloc(64);
+	void *hashB = malloc(64);
 
-        sph_groestl512_init(&ctx_groestl);
-        sph_groestl512 (&ctx_groestl, iHash, len);
-        sph_groestl512_close(&ctx_groestl, oHash);
-}
+	unsigned char *p;
 
-void *Skein512(void *oHash, const void *iHash, uint32_t len)
-{
-        sph_skein512_context ctx_skein;
+	// Iteration 0
+	processHash(hashA, input, 0, 80);
+        p = hashA;
+	unsigned int n = HASHX11KV_MIN_NUMBER_ITERATIONS + (p[63] % (HASHX11KV_MAX_NUMBER_ITERATIONS - HASHX11KV_MIN_NUMBER_ITERATIONS + 1));
 
-        sph_skein512_init(&ctx_skein);
-        sph_skein512 (&ctx_skein, iHash, len);
-        sph_skein512_close (&ctx_skein, oHash);
-}
+	for(int i = 1; i < n; i++) {
+		p = (unsigned char *) hashA;
 
-void *Jh512(void *oHash, const void *iHash, uint32_t len)
-{
-        sph_jh512_context ctx_jh;
+		processHash(hashB, hashA, p[i % 64] % HASHX11KV_NUMBER_ALGOS, 64);
+       
+		memcpy(hashA, hashB, 64);
+	    	void* t = hashA;
+		hashA = hashB;
+		hashB = t;
+	}
 
-        sph_jh512_init(&ctx_jh);
-        sph_jh512 (&ctx_jh, iHash, len);
-        sph_jh512_close(&ctx_jh, oHash);
-}
-
-void *Keccak512(void *oHash, const void *iHash, uint32_t len)
-{
-        sph_keccak512_context ctx_keccak;
-
-        sph_keccak512_init(&ctx_keccak);
-        sph_keccak512 (&ctx_keccak, iHash, len);
-        sph_keccak512_close(&ctx_keccak, oHash);
-}
-
-void *Luffa512(void *oHash, const void *iHash, uint32_t len)
-{
-        sph_luffa512_context ctx_luffa1;
-
-        sph_luffa512_init (&ctx_luffa1);
-        sph_luffa512 (&ctx_luffa1, iHash, len);
-        sph_luffa512_close (&ctx_luffa1, oHash);
-}
-
-void *Cubehash512(void *oHash, const void *iHash, uint32_t len)
-{
-        sph_cubehash512_context ctx_cubehash1;
-
-        sph_cubehash512_init (&ctx_cubehash1);
-        sph_cubehash512 (&ctx_cubehash1, iHash, len);
-        sph_cubehash512_close(&ctx_cubehash1, oHash);
-}
-
-void *Shavite512(void *oHash, const void *iHash, uint32_t len)
-{
-        sph_shavite512_context ctx_shavite1;
-
-        sph_shavite512_init (&ctx_shavite1);
-        sph_shavite512 (&ctx_shavite1, iHash, len);
-        sph_shavite512_close(&ctx_shavite1, oHash);
-}
-
-void *Simd512(void *oHash, const void *iHash, uint32_t len)
-{
-        sph_simd512_context     ctx_simd1;
-
-        sph_simd512_init (&ctx_simd1);
-        sph_simd512 (&ctx_simd1, iHash, len);
-        sph_simd512_close(&ctx_simd1, oHash);
-}
-
-void *Echo512(void *oHash, const void *iHash, uint32_t len)
-{
-        sph_echo512_context     ctx_echo1;
-
-        sph_echo512_init (&ctx_echo1);
-        sph_echo512 (&ctx_echo1, iHash, len);
-        sph_echo512_close(&ctx_echo1, oHash);
-}
-
-void *fnHashX11K[] = {
-        Blake512,
-        Bmw512,
-        Groestl512,
-        Skein512,
-        Jh512,
-        Keccak512,
-        Luffa512,
-        Cubehash512,
-        Shavite512,
-        Simd512,
-        Echo512,
-};
-
-void processHash(void *oHash, const void *iHash, int index, uint32_t len)
-{
-        void (*hashX11k)(void *oHash, const void *iHash, uint32_t len);
-
-        hashX11k = fnHashX11K[index];
-	(*hashX11k)(oHash, iHash, len);
-}
-
-void x11k_hash(const char* input, char* output,  uint32_t len)
-{
-        const int HASHX11K_NUMBER_ITERATIONS = 64;
-	const int HASHX11K_NUMBER_ALGOS = 11;
-
-	void* hashA = (void *) malloc(64);
-	void* hashB = (void *) malloc(64);
-
-        // Iteration 0
-        processHash(hashA, input, 0, len);
-
-        for(int i = 1; i < HASHX11K_NUMBER_ITERATIONS; i++) {
-                unsigned char * p = hashA;
-                processHash(hashB, hashA, p[i] % HASHX11K_NUMBER_ALGOS, 64);
-
-                void* t = hashA;
-                hashA = hashB;
-                hashB = t;
-        }
-
-        memcpy(output, hashA, 32);
+	memcpy(output, hashA, 32);
 
 	free(hashA);
 	free(hashB);
 }
 
+const unsigned int HASHX11KVS_MAX_LEVEL = 7;
+const unsigned int HASHX11KVS_MIN_LEVEL = 1;
+const unsigned int HASHX11KVS_MAX_DRIFT = 0xFFFF;
 
-/*
-void x11_hash(const char* input, char* output, uint32_t len)
+void x11kvshash(void *output, const void *input, unsigned int level)
 {
-    sph_blake512_context     ctx_blake;
-    sph_bmw512_context       ctx_bmw;
-    sph_groestl512_context   ctx_groestl;
-    sph_skein512_context     ctx_skein;
-    sph_jh512_context        ctx_jh;
-    sph_keccak512_context    ctx_keccak;
+    void *hash;
+	x11kv(hash, input);
+    
+	if (level == HASHX11KVS_MIN_LEVEL)
+	{
+		memcpy(output, hash, 32);
+		return;
+	}
 
-    sph_luffa512_context		ctx_luffa1;
-    sph_cubehash512_context		ctx_cubehash1;
-    sph_shavite512_context		ctx_shavite1;
-    sph_simd512_context		ctx_simd1;
-    sph_echo512_context		ctx_echo1;
+    uint32_t nonce = le32dec(input + 76);
 
-    //these uint512 in the c++ source of the client are backed by an array of uint32
-    uint32_t hashA[16], hashB[16];
+    uint8_t nextheader1[80];
+    uint8_t nextheader2[80];
 
-    sph_blake512_init(&ctx_blake);
-    sph_blake512 (&ctx_blake, input, len);
-    sph_blake512_close (&ctx_blake, hashA);
+    uint32_t nextnonce1 = nonce + (le32dec(hash + 24) % HASHX11KVS_MAX_DRIFT);
+    uint32_t nextnonce2 = nonce + (le32dec(hash + 28) % HASHX11KVS_MAX_DRIFT);
 
-    sph_bmw512_init(&ctx_bmw);
-    sph_bmw512 (&ctx_bmw, hashA, 64);
-    sph_bmw512_close(&ctx_bmw, hashB);
+    memcpy(nextheader1, input, 76);
+    le32enc(nextheader1 + 76, nextnonce1);
 
-    sph_groestl512_init(&ctx_groestl);
-    sph_groestl512 (&ctx_groestl, hashB, 64);
-    sph_groestl512_close(&ctx_groestl, hashA);
+    memcpy(nextheader2, input, 76);
+    le32enc(nextheader2 + 76, nextnonce2);
 
-    sph_skein512_init(&ctx_skein);
-    sph_skein512 (&ctx_skein, hashA, 64);
-    sph_skein512_close (&ctx_skein, hashB);
+    	void *hash1;
+	void *hash2;
+	void *nexheader1Pointer;
+    	void *nexheader2Pointer;
+    
+	memcpy(nexheader1Pointer, nextheader1, 80);
+	memcpy(nexheader2Pointer, nextheader2, 80);
 
-    sph_jh512_init(&ctx_jh);
-    sph_jh512 (&ctx_jh, hashB, 64);
-    sph_jh512_close(&ctx_jh, hashA);
+	x11kvshash(hash1, nexheader1Pointer, level - 1);
+    	x11kvshash(hash2, nexheader2Pointer, level - 1);
 
-    sph_keccak512_init(&ctx_keccak);
-    sph_keccak512 (&ctx_keccak, hashA, 64);
-    sph_keccak512_close(&ctx_keccak, hashB);
+	// Concat hash1 and hash2
+	void *hashFinal;
+	memcpy(hashFinal, hash1, 32);
+	memcpy(hashFinal + 32, hash2, 32);
 
-    sph_luffa512_init (&ctx_luffa1);
-    sph_luffa512 (&ctx_luffa1, hashB, 64);
-    sph_luffa512_close (&ctx_luffa1, hashA);
-
-    sph_cubehash512_init (&ctx_cubehash1);
-    sph_cubehash512 (&ctx_cubehash1, hashA, 64);
-    sph_cubehash512_close(&ctx_cubehash1, hashB);
-
-    sph_shavite512_init (&ctx_shavite1);
-    sph_shavite512 (&ctx_shavite1, hashB, 64);
-    sph_shavite512_close(&ctx_shavite1, hashA);
-
-    sph_simd512_init (&ctx_simd1);
-    sph_simd512 (&ctx_simd1, hashA, 64);
-    sph_simd512_close(&ctx_simd1, hashB);
-
-    sph_echo512_init (&ctx_echo1);
-    sph_echo512 (&ctx_echo1, hashB, 64);
-    sph_echo512_close(&ctx_echo1, hashA);
-
-    memcpy(output, hashA, 32);
-
+	memcpy(output, hashFinal, 64);
 }
 
-*/
+void x11kvs_hash(const char* input, char* output,  uint32_t len)
+{
+	void *output1;
+	x11kvshash(output1, input, HASHX11KVS_MAX_LEVEL);
+
+	memcpy(output, output1, 32);
+}

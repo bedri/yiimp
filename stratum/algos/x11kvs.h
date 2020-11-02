@@ -1,5 +1,5 @@
-#ifndef X11K_H
-#define X11K_H
+#ifndef X11KVS_H
+#define X11KVS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -7,7 +7,7 @@ extern "C" {
 
 #include <stdint.h>
 
-void x11kvshash(void *output, const void *input, int thr_id, unsigned int level);
+void x11kvs_hash(const char* input, char* output,  uint32_t len);
 
 #ifdef __cplusplus
 }
