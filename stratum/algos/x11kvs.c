@@ -31,6 +31,7 @@ extern void *Echo512(void *oHash, const void *iHash, const size_t len);
 extern void *fnHashX11K[];
 extern void processHash(void *oHash, const void *iHash, const int index, const size_t len);
 
+extern void sha256_double_hash(const char *input, char *output, unsigned int len);
 
 /* ----------- Sapphire 2.0 Hash X11KVS ------------------------------------ */
 /* - X11, from the original 11 algos used on DASH -------------------------- */
@@ -98,7 +99,7 @@ const unsigned int HASHX11KVS_MAX_DRIFT = 0xFFFF;
 
 void x11kvshash(void *output, const void *input, unsigned int level)
 {
-    void *hash;
+    void *hash = malloc(32);
 	x11kv(hash, input);
     
 	if (level == HASHX11KVS_MIN_LEVEL)
@@ -121,23 +122,36 @@ void x11kvshash(void *output, const void *input, unsigned int level)
     memcpy(nextheader2, input, 76);
     le32enc(nextheader2 + 76, nextnonce2);
 
-    	void *hash1;
-	void *hash2;
-	void *nexheader1Pointer;
-    	void *nexheader2Pointer;
+    void *hash1 = malloc(32);
+	void *hash2 = malloc(32);
+	void *nextheader1Pointer = malloc(80);
+    void *nextheader2Pointer = malloc(80);
     
-	memcpy(nexheader1Pointer, nextheader1, 80);
-	memcpy(nexheader2Pointer, nextheader2, 80);
+	memcpy(nextheader1Pointer, nextheader1, 80);
+	memcpy(nextheader2Pointer, nextheader2, 80);
 
-	x11kvshash(hash1, nexheader1Pointer, level - 1);
-    	x11kvshash(hash2, nexheader2Pointer, level - 1);
+	x11kvshash(hash1, nextheader1Pointer, level - 1);
+    x11kvshash(hash2, nextheader2Pointer, level - 1);
 
-	// Concat hash1 and hash2
-	void *hashFinal;
-	memcpy(hashFinal, hash1, 32);
-	memcpy(hashFinal + 32, hash2, 32);
+	// Concat hash, hash1 and hash2
+	void *hashConcated = malloc(32 + 32 + 32);
+	memcpy(hashConcated, hash, 32);
+	memcpy(hashConcated + 32, hash1, 32);
+	memcpy(hashConcated + 32 + 32, hash2, 32);
 
-	memcpy(output, hashFinal, 64);
+	const uint8_t *data =  (const uint8_t *) hashConcated;
+
+	uint8_t *hashFinal = malloc(64);
+	sha256_double_hash(data, hashFinal, 64);
+
+	memcpy(output, hashFinal, 32);
+
+	free(hash);
+	free(hash1);
+	free(hash2);
+	free(nextheader1Pointer);
+	free(nextheader2Pointer);
+	free(hashFinal);
 }
 
 void x11kvs_hash(const char* input, char* output,  uint32_t len)
