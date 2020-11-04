@@ -139,7 +139,7 @@ void x11kvshash(char *output, const char *input, unsigned int level)
 	memcpy(hashConcated + 32, hash1, 32);
 	memcpy(hashConcated + 32 + 32, hash2, 32);
 
-	sha256_double_hash((const unsigned char *) hashConcated, output, 96);
+	sha256_double_hash(hashConcated, output, 96);
 
 	free(hash);
 	free(hash1);
@@ -150,8 +150,5 @@ void x11kvshash(char *output, const char *input, unsigned int level)
 
 void x11kvs_hash(const char* input, char* output,  uint32_t len)
 {
-	void *output1;
-	x11kvshash(output1, input, HASHX11KVS_MAX_LEVEL);
-
-	memcpy(output, output1, 32);
+	x11kvshash(output, input, HASHX11KVS_MAX_LEVEL);
 }
