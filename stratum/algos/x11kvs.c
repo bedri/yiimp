@@ -97,7 +97,7 @@ const unsigned int HASHX11KVS_MAX_LEVEL = 7;
 const unsigned int HASHX11KVS_MIN_LEVEL = 1;
 const unsigned int HASHX11KVS_MAX_DRIFT = 0xFFFF;
 
-void x11kvshash(char *output, const void *input, unsigned int level)
+void x11kvshash(char *output, const char *input, unsigned int level)
 {
     void *hash = malloc(32);
 	x11kv(hash, input);
