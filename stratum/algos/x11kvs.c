@@ -73,7 +73,7 @@ void x11kv(void *output, const void *input)
 
 	// Iteration 0
 	processHash(hashA, input, 0, 80);
-        p = hashA;
+	p = hashA;
 	unsigned int n = HASHX11KV_MIN_NUMBER_ITERATIONS + (p[63] % (HASHX11KV_MAX_NUMBER_ITERATIONS - HASHX11KV_MIN_NUMBER_ITERATIONS + 1));
 
 	for(int i = 1; i < n; i++) {
@@ -97,7 +97,7 @@ const unsigned int HASHX11KVS_MAX_LEVEL = 7;
 const unsigned int HASHX11KVS_MIN_LEVEL = 1;
 const unsigned int HASHX11KVS_MAX_DRIFT = 0xFFFF;
 
-void x11kvshash(char *output, const char *input, unsigned int level)
+void x11kvshash(void *output, const char *input, unsigned int level)
 {
     void* hash = malloc(32);
 	x11kv(hash, input);
