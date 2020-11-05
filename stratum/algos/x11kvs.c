@@ -142,13 +142,19 @@ void x11kvshash(char *output, const char *input, unsigned int level)
 	memcpy(hashConcated + 32, hash1, 32);
 	memcpy(hashConcated + 32 + 32, hash2, 32);
 
-	sha256_double_hash(hashConcated, output, 96);
+	const uint8_t *data =  (const uint8_t *) hashConcated;
+
+	uint8_t *hashFinal = malloc(64);
+	sha256_double_hash(data, hashFinal, 64);
+
+	memcpy(output, hashFinal, 32);
 
 	free(hash);
 	free(hash1);
 	free(hash2);
 	free(nextheader1Pointer);
 	free(nextheader2Pointer);
+	free(hashFinal);
 	free(hashConcated);
 }
 
