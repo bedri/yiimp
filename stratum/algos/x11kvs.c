@@ -97,7 +97,7 @@ const unsigned int HASHX11KVS_MAX_LEVEL = 7;
 const unsigned int HASHX11KVS_MIN_LEVEL = 1;
 const unsigned int HASHX11KVS_MAX_DRIFT = 0xFFFF;
 
-void x11kvshash(void *output, const void *input, unsigned int level)
+void x11kvshash(char *output, const char *input, unsigned int level)
 {
     void *hash = malloc(32);
 	x11kv(hash, input);
@@ -105,7 +105,6 @@ void x11kvshash(void *output, const void *input, unsigned int level)
 	if (level == HASHX11KVS_MIN_LEVEL)
 	{
 		memcpy(output, hash, 32);
-		free(hash);
 		return;
 	}
 
@@ -137,31 +136,21 @@ void x11kvshash(void *output, const void *input, unsigned int level)
 
 
 	// Concat hash, hash1 and hash2
-	void *hashConcated = malloc(96);
+	void *hashConcated = malloc(32 + 32 + 32);
 	memcpy(hashConcated, hash, 32);
 	memcpy(hashConcated + 32, hash1, 32);
 	memcpy(hashConcated + 32 + 32, hash2, 32);
 
-	const char *data =  (const char *) hashConcated;
-
-	char *hashFinal = malloc(32);
-	sha256_double_hash(data, hashFinal, 32);
-
-	memcpy(output, hashFinal, 32);
+	sha256_double_hash(hashConcated, output, 96);
 
 	free(hash);
 	free(hash1);
 	free(hash2);
 	free(nextheader1Pointer);
 	free(nextheader2Pointer);
-	free(hashFinal);
-	free(hashConcated);
 }
 
 void x11kvs_hash(const char* input, char* output,  uint32_t len)
 {
-	void *output1;
-	x11kvshash(output1, input, HASHX11KVS_MAX_LEVEL);
-
-	memcpy(output, output1, 32);
+	x11kvshash(output, input, HASHX11KVS_MAX_LEVEL);
 }
