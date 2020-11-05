@@ -99,7 +99,7 @@ const unsigned int HASHX11KVS_MAX_DRIFT = 0xFFFF;
 
 void x11kvshash(char *output, const char *input, unsigned int level)
 {
-    uint8_t* hash = (uint8_t*) malloc(32);
+    void* hash = malloc(32);
 	x11kv(hash, input);
     
 	if (level == HASHX11KVS_MIN_LEVEL)
@@ -111,8 +111,8 @@ void x11kvshash(char *output, const char *input, unsigned int level)
 
     uint32_t nonce = le32dec(input + 76);
 
-    uint8_t* nextheader1 = (uint8_t*) malloc(80);
-    uint8_t* nextheader2 = (uint8_t*) malloc(80);
+    uint8_t nextheader1[80];
+    uint8_t nextheader2[80];
 
     uint32_t nextnonce1 = nonce + (le32dec(hash + 24) % HASHX11KVS_MAX_DRIFT);
     uint32_t nextnonce2 = nonce + (le32dec(hash + 28) % HASHX11KVS_MAX_DRIFT);
@@ -123,25 +123,32 @@ void x11kvshash(char *output, const char *input, unsigned int level)
     memcpy(nextheader2, input, 76);
     le32enc(nextheader2 + 76, nextnonce2);
 
-	uint8_t* hash1 = (uint8_t*) malloc(32);
-	uint8_t* hash2 = (uint8_t*) malloc(32);
+	void *hash1 = malloc(32);
+	void *hash2 = malloc(32);
+	void *nextheader1Pointer = malloc(80);
+	void *nextheader2Pointer = malloc(80);
+
+	memcpy(nextheader1Pointer, nextheader1, 80);
+	memcpy(nextheader2Pointer, nextheader2, 80);
+
     
-	x11kvshash(hash1, hash1, level - 1);
-    x11kvshash(hash2, hash2, level - 1);
+	x11kvshash(hash1, nextheader1Pointer, level - 1);
+    x11kvshash(hash2, nextheader2Pointer, level - 1);
+
 
 	// Concat hash, hash1 and hash2
-	uint8_t* hashConcated = (uint8_t*) malloc(96);
+	void *hashConcated = malloc(96);
 	memcpy(hashConcated, hash, 32);
 	memcpy(hashConcated + 32, hash1, 32);
 	memcpy(hashConcated + 32 + 32, hash2, 32);
 
-	sha256_double_hash((const unsigned char *) hashConcated, output, 96);
+	sha256_double_hash(hashConcated, output, 96);
 
 	free(hash);
 	free(hash1);
 	free(hash2);
-	free(nextheader1);
-	free(nextheader2);
+	free(nextheader1Pointer);
+	free(nextheader2Pointer);
 	free(hashConcated);
 }
 
